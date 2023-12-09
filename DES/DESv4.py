@@ -176,26 +176,94 @@ def des_encrypt_block(block, subkeys):
     block = final_permutation(right + left)
     return block
 
+# def des_encrypt(plaintext, key):
+#     key = format(int(key, 2), '064b')
+#     subkeys = generate_subkeys(key)
+    
+#     def simple_pad(data, block_size):
+#         padding_len = block_size - len(data) % block_size
+#         padding = bytes([padding_len] * padding_len)
+#         return data + padding
+
+#     plaintext = simple_pad(plaintext.encode('utf-8'), 64)
+#     ciphertext = ''
+#     for i in range(0, len(plaintext), 8):
+#         block = format(int(plaintext[i:i+8].hex(), 16), '064b')
+#         encrypted_block = des_encrypt_block(block, subkeys)
+#         ciphertext += format(int(encrypted_block, 2), '016x')
+
+#     return ciphertext.upper()
+
+def des_decrypt_block(block, subkeys):
+    block = initial_permutation(block)
+
+    left, right = block[:32], block[32:]
+    for i in range(15, -1, -1):  # Reverse order of subkeys
+        previous_left = left
+        left = right
+        right = format(int(previous_left, 2) ^ int(feistel_function(right, subkeys[i]), 2), '032b')
+
+    block = final_permutation(right + left)
+    return block
+
+# def des_decrypt(ciphertext, key):
+#     key = format(int(key, 2), '064b')
+#     subkeys = generate_subkeys(key)
+
+#     plaintext = ''
+#     for i in range(0, len(ciphertext), 16):
+#         block = format(int(ciphertext[i:i+16], 16), '064b')
+#         decrypted_block = des_decrypt_block(block, subkeys)
+#         plaintext += bytes.fromhex(format(int(decrypted_block, 2), '016x')).decode('utf-8')
+
+#     return plaintext.rstrip('\x00')
+
+
+def pkcs7_pad(data, block_size):
+    padding_len = block_size - len(data) % block_size
+    padding = bytes([padding_len] * padding_len)
+    return data + padding
+
+def pkcs7_unpad(data):
+    padding_len = data[-1]
+    return data[:-padding_len]
+
 def des_encrypt(plaintext, key):
     key = format(int(key, 2), '064b')
     subkeys = generate_subkeys(key)
-    
-    def simple_pad(data, block_size):
-        padding_len = block_size - len(data) % block_size
-        padding = bytes([padding_len] * padding_len)
-        return data + padding
 
-    plaintext = simple_pad(plaintext.encode('utf-8'), 64)
+    plaintext_bytes = plaintext.encode('utf-8')
+    padding_len = 8 - len(plaintext_bytes) % 8
+    plaintext_padded = plaintext_bytes + bytes([padding_len] * padding_len)
+
     ciphertext = ''
-    for i in range(0, len(plaintext), 8):
-        block = format(int(plaintext[i:i+8].hex(), 16), '064b')
+    for i in range(0, len(plaintext_padded), 8):
+        block = format(int.from_bytes(plaintext_padded[i:i+8], byteorder='big'), '064b')
         encrypted_block = des_encrypt_block(block, subkeys)
         ciphertext += format(int(encrypted_block, 2), '016x')
 
     return ciphertext.upper()
 
+def des_decrypt(ciphertext, key):
+    key = format(int(key, 2), '064b')
+    subkeys = generate_subkeys(key)
+
+    plaintext = ''
+    for i in range(0, len(ciphertext), 16):
+        block = format(int(ciphertext[i:i+16], 16), '064b')
+        decrypted_block = des_decrypt_block(block, subkeys)
+        plaintext_block = int(decrypted_block, 2).to_bytes(8, byteorder='big', signed=False)
+        plaintext += plaintext_block.decode('utf-8', errors='ignore')
+
+    # Используем информацию о длине паддинга
+    padding_len = ord(plaintext[-1])
+    plaintext = plaintext[:-padding_len]
+
+    return plaintext
+
+
 # Пример 
-#plaintext = "Hello, world!"
+# plaintext = "Hello, World!"
 plaintext = "Hochu na kanikuly i poluchit' diplom"
 #key = "0001001100110100010101110111100110011011101111001101111111110001"
 key = "0101"
@@ -203,3 +271,6 @@ key = "0101"
 ciphertext = des_encrypt(plaintext, key)
 print(f"ORIGINAL: {plaintext}")
 print(f"ENCRYPTED: {ciphertext}")
+# Пример дешифрования
+decrypted_text = des_decrypt(ciphertext, key)
+print(f"DECRYPTED: {decrypted_text}")
