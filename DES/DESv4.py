@@ -255,7 +255,7 @@ def des_decrypt(ciphertext, key):
         plaintext_block = int(decrypted_block, 2).to_bytes(8, byteorder='big', signed=False)
         plaintext += plaintext_block.decode('utf-8', errors='ignore')
 
-    # Используем информацию о длине паддинга
+    
     padding_len = ord(plaintext[-1])
     plaintext = plaintext[:-padding_len]
 
