@@ -58,4 +58,4 @@ print("ENCRYPTED:", *encrypted_message)
 
 
 decrypted_message = decrypt(sk, encrypted_message)
-print("Decrypted message:", decrypted_message)
+print("DECRYPTED:", decrypted_message)
